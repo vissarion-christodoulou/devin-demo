@@ -10,6 +10,7 @@ export interface KycRecord {
   sanctionsSource2: string
   status: string
   reason: string
+  enteredQueue: Date
 }
 
 interface RawRow {
@@ -21,12 +22,13 @@ interface RawRow {
   'Sanctions from data source 2': string
   Status: string
   Reason: string
+  'Entered Queue': Date
 }
 
 export async function loadKycRecords(): Promise<KycRecord[]> {
   const response = await fetch(workbookUrl)
   if (!response.ok) throw new Error(`Failed to load workbook: ${response.status}`)
-  const workbook = read(await response.arrayBuffer())
+  const workbook = read(await response.arrayBuffer(), { cellDates: true })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const rows = utils.sheet_to_json<RawRow>(sheet)
   return rows.map((row) => ({
@@ -38,5 +40,6 @@ export async function loadKycRecords(): Promise<KycRecord[]> {
     sanctionsSource2: row['Sanctions from data source 2'],
     status: row.Status,
     reason: row.Reason,
+    enteredQueue: row['Entered Queue'],
   }))
 }

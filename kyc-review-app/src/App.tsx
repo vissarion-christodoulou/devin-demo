@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react'
 import { loadKycRecords, type KycRecord } from './kyc'
 
+const timestampFormat = new Intl.DateTimeFormat(undefined, {
+  dateStyle: 'medium',
+  timeStyle: 'short',
+})
+
 export default function App() {
   const [records, setRecords] = useState<KycRecord[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -24,7 +29,12 @@ export default function App() {
                 className={record.id === selectedId ? 'row selected' : 'row'}
                 onClick={() => setSelectedId(record.id)}
               >
-                <span className="name">{record.customerName}</span>
+                <span className="title">
+                  <span className="name">{record.customerName}</span>
+                  <time className="entered" dateTime={record.enteredQueue.toISOString()}>
+                    {timestampFormat.format(record.enteredQueue)}
+                  </time>
+                </span>
                 <span className="reason">{record.reason}</span>
               </button>
             </li>
@@ -52,11 +62,17 @@ function Detail({ record, onClose }: { record: KycRecord; onClose: () => void })
     ['Sanctions from data source 2', record.sanctionsSource2],
     ['Status', record.status],
     ['Reason', record.reason],
+    ['Entered Queue', timestampFormat.format(record.enteredQueue)],
   ]
   return (
     <>
       <header>
-        <h2>{record.customerName}</h2>
+        <h2>
+          {record.customerName}
+          <time className="entered" dateTime={record.enteredQueue.toISOString()}>
+            Entered queue {timestampFormat.format(record.enteredQueue)}
+          </time>
+        </h2>
         <button className="close" onClick={onClose}>
           Close
         </button>
