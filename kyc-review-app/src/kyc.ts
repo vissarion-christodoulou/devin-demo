@@ -25,6 +25,20 @@ interface RawRow {
   'Entered Queue': Date
 }
 
+export type KycStatus = 'FLAGGED' | 'APPROVED' | 'REJECTED'
+
+export async function updateKycStatus(id: number, status: KycStatus): Promise<void> {
+  const response = await fetch('/api/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id, status }),
+  })
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { error?: string } | null
+    throw new Error(body?.error ?? `Failed to update status: ${response.status}`)
+  }
+}
+
 export async function loadKycRecords(): Promise<KycRecord[]> {
   const response = await fetch(workbookUrl)
   if (!response.ok) throw new Error(`Failed to load workbook: ${response.status}`)
