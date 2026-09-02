@@ -43,5 +43,5 @@ export async function loadKycRecords(): Promise<KycRecord[]> {
       reason: row.Reason,
       enteredQueue: row['Entered Queue'],
     }))
-    .sort((a, b) => b.enteredQueue.getTime() - a.enteredQueue.getTime())
+    .sort((a, b) => a.enteredQueue.getTime() - b.enteredQueue.getTime())
 }
