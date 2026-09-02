@@ -58,8 +58,28 @@ body {
   background: #e0e7ff;
 }
 
+.row .title {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
 .row .name {
   font-weight: 600;
+}
+
+.entered {
+  font-size: 0.75rem;
+  font-weight: 400;
+  color: #9ca3af;
+  white-space: nowrap;
+}
+
+.detail h2 .entered {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.85rem;
 }
 
 .row .reason {
