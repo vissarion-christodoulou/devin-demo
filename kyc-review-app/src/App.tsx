@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { loadKycRecords, type KycRecord } from './kyc'
 
 const STATUSES = ['FLAGGED', 'APPROVED', 'REJECTED'] as const
+type Status = (typeof STATUSES)[number]
 
 const timestampFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -13,7 +14,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState<Status>('FLAGGED')
 
   useEffect(() => {
     loadKycRecords().then(setRecords, (e: Error) => setError(e.message))
@@ -24,7 +25,7 @@ export default function App() {
   const visible = records.filter(
     (r) =>
       (query === '' || r.customerName.toLowerCase().includes(query)) &&
-      (statusFilter === '' || r.status === statusFilter),
+      r.status === statusFilter,
   )
 
   return (
@@ -38,8 +39,7 @@ export default function App() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
-            <option value="">All statuses</option>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Status)}>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
