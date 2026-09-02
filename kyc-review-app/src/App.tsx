@@ -21,6 +21,8 @@ export default function App() {
   }, [])
 
   const selected = records.find((r) => r.id === selectedId) ?? null
+  const setStatus = (id: number, status: Status) =>
+    setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
   const query = search.trim().toLowerCase()
   const visible = records.filter(
     (r) =>
@@ -72,7 +74,11 @@ export default function App() {
       </aside>
       <main className="detail">
         {selected ? (
-          <Detail record={selected} onClose={() => setSelectedId(null)} />
+          <Detail
+            record={selected}
+            onClose={() => setSelectedId(null)}
+            onDecide={(status) => setStatus(selected.id, status)}
+          />
         ) : (
           <p className="placeholder">Select a row to see its details.</p>
         )}
@@ -81,7 +87,15 @@ export default function App() {
   )
 }
 
-function Detail({ record, onClose }: { record: KycRecord; onClose: () => void }) {
+function Detail({
+  record,
+  onClose,
+  onDecide,
+}: {
+  record: KycRecord
+  onClose: () => void
+  onDecide: (status: Status) => void
+}) {
   const fields: [string, string | number][] = [
     ['ID', record.id],
     ['Customer Name', record.customerName],
@@ -114,6 +128,14 @@ function Detail({ record, onClose }: { record: KycRecord; onClose: () => void })
           </div>
         ))}
       </dl>
+      <footer className="actions">
+        <button className="accept" onClick={() => onDecide('APPROVED')}>
+          Accept
+        </button>
+        <button className="reject" onClick={() => onDecide('REJECTED')}>
+          Reject
+        </button>
+      </footer>
     </>
   )
 }

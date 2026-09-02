@@ -166,6 +166,40 @@ body {
   font-size: 1.05rem;
 }
 
+.actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.actions button {
+  padding: 0.6rem 1.5rem;
+  border: 0;
+  border-radius: 6px;
+  font: inherit;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+
+.actions .accept {
+  background: #16a34a;
+}
+
+.actions .accept:hover {
+  background: #15803d;
+}
+
+.actions .reject {
+  background: #dc2626;
+}
+
+.actions .reject:hover {
+  background: #b91c1c;
+}
+
 .placeholder,
 .error {
   color: #6b7280;
