@@ -31,15 +31,17 @@ export async function loadKycRecords(): Promise<KycRecord[]> {
   const workbook = read(await response.arrayBuffer(), { cellDates: true })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const rows = utils.sheet_to_json<RawRow>(sheet)
-  return rows.map((row) => ({
-    id: row.id,
-    customerName: row['Customer Name'],
-    nameReadFromId: row['Name Read From Id'],
-    creditScore: row['Credit Score'] ?? null,
-    sanctionsSource1: row['Sanctions from data source 1'],
-    sanctionsSource2: row['Sanctions from data source 2'],
-    status: row.Status,
-    reason: row.Reason,
-    enteredQueue: row['Entered Queue'],
-  }))
+  return rows
+    .map((row) => ({
+      id: row.id,
+      customerName: row['Customer Name'],
+      nameReadFromId: row['Name Read From Id'],
+      creditScore: row['Credit Score'] ?? null,
+      sanctionsSource1: row['Sanctions from data source 1'],
+      sanctionsSource2: row['Sanctions from data source 2'],
+      status: row.Status,
+      reason: row.Reason,
+      enteredQueue: row['Entered Queue'],
+    }))
+    .sort((a, b) => a.enteredQueue.getTime() - b.enteredQueue.getTime())
 }
