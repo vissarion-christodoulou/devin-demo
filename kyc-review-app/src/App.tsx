@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react'
 import { loadKycRecords, type KycRecord } from './kyc'
 
+const STATUSES = ['FLAGGED', 'APPROVED', 'REJECTED'] as const
+type Status = (typeof STATUSES)[number]
+
 const timestampFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
@@ -10,20 +13,46 @@ export default function App() {
   const [records, setRecords] = useState<KycRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<Status>('FLAGGED')
 
   useEffect(() => {
     loadKycRecords().then(setRecords, (e: Error) => setError(e.message))
   }, [])
 
   const selected = records.find((r) => r.id === selectedId) ?? null
+  const query = search.trim().toLowerCase()
+  const visible = records.filter(
+    (r) =>
+      (query === '' || r.customerName.toLowerCase().includes(query)) &&
+      r.status === statusFilter,
+  )
 
   return (
     <div className="layout">
       <aside className="list">
         <h1>KYC Review Queue</h1>
+        <div className="controls">
+          <input
+            type="search"
+            placeholder="Search by name"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Status)}>
+            {STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
         {error && <p className="error">{error}</p>}
+        {!error && records.length > 0 && visible.length === 0 && (
+          <p className="placeholder empty">No matching records.</p>
+        )}
         <ul>
-          {records.map((record) => (
+          {visible.map((record) => (
             <li key={record.id}>
               <button
                 className={record.id === selectedId ? 'row selected' : 'row'}
