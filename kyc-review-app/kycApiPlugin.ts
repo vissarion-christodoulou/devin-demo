@@ -6,6 +6,7 @@ import { read, utils, write } from 'xlsx'
 
 const WORKBOOK_PATH = fileURLToPath(new URL('./data/KYC_review.xlsx', import.meta.url))
 const STATUSES = new Set(['FLAGGED', 'APPROVED', 'REJECTED'])
+const DATE_FORMAT = 'yyyy-mm-dd hh:mm:ss'
 
 interface RawRow {
   id: number
@@ -17,6 +18,12 @@ interface RawRow {
   Status: string
   Reason: string
   'Entered Queue': Date
+  'Decided At'?: Date
+}
+
+/** Excel stores naive local datetimes; SheetJS reads them back through the local timezone. */
+function toSerial(date: Date): number {
+  return 25569 + (date.getTime() - date.getTimezoneOffset() * 60_000) / 86_400_000
 }
 
 function readBody(req: IncomingMessage): Promise<string> {
@@ -47,10 +54,11 @@ function readRecords() {
     status: row.Status,
     reason: row.Reason,
     enteredQueue: row['Entered Queue'].toISOString(),
+    decidedAt: row['Decided At']?.toISOString() ?? null,
   }))
 }
 
-function updateStatus(id: number, status: string): boolean {
+function updateStatus(id: number, status: string): Date | false {
   const workbook = read(readFileSync(WORKBOOK_PATH), { cellNF: true })
   const sheet = workbook.Sheets[workbook.SheetNames[0]]
   const range = utils.decode_range(sheet['!ref']!)
@@ -61,13 +69,19 @@ function updateStatus(id: number, status: string): boolean {
   }
   const idCol = headers['id']
   const statusCol = headers['Status']
-  if (idCol === undefined || statusCol === undefined) return false
+  const decidedCol = headers['Decided At']
+  if (idCol === undefined || statusCol === undefined || decidedCol === undefined) return false
+  const decidedAt = new Date(Math.floor(Date.now() / 1000) * 1000)
   for (let r = range.s.r + 1; r <= range.e.r; r++) {
     const idCell = sheet[utils.encode_cell({ r, c: idCol })]
     if (idCell?.v === id) {
       sheet[utils.encode_cell({ r, c: statusCol })] = { t: 's', v: status }
+      sheet[utils.encode_cell({ r, c: decidedCol })] =
+        status === 'FLAGGED'
+          ? { t: 'z' }
+          : { t: 'n', v: toSerial(decidedAt), z: DATE_FORMAT }
       writeFileSync(WORKBOOK_PATH, write(workbook, { type: 'buffer', bookType: 'xlsx' }))
-      return true
+      return decidedAt
     }
   }
   return false
@@ -92,8 +106,13 @@ export default function kycApiPlugin(): Plugin {
           if (typeof id !== 'number' || typeof status !== 'string' || !STATUSES.has(status)) {
             return json(res, 400, { error: 'Expected { id: number, status: FLAGGED|APPROVED|REJECTED }' })
           }
-          if (!updateStatus(id, status)) return json(res, 404, { error: `No record with id ${id}` })
-          json(res, 200, { id, status })
+          const decidedAt = updateStatus(id, status)
+          if (!decidedAt) return json(res, 404, { error: `No record with id ${id}` })
+          json(res, 200, {
+            id,
+            status,
+            decidedAt: status === 'FLAGGED' ? null : decidedAt.toISOString(),
+          })
         } catch (e) {
           json(res, 500, { error: e instanceof Error ? e.message : String(e) })
         }

@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { loadKycRecords, updateKycStatus, type KycRecord, type KycStatus } from './kyc'
+import {
+  hourlyQueueSize,
+  loadKycRecords,
+  updateKycStatus,
+  type HourlyQueueSize,
+  type KycRecord,
+  type KycStatus,
+} from './kyc'
 
 const STATUSES: readonly KycStatus[] = ['FLAGGED', 'APPROVED', 'REJECTED']
 
@@ -7,6 +14,8 @@ const timestampFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
   timeStyle: 'short',
 })
+
+const hourFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric' })
 
 export default function App() {
   const [records, setRecords] = useState<KycRecord[]>([])
@@ -26,8 +35,8 @@ export default function App() {
     setSaving(true)
     setSaveError(null)
     try {
-      await updateKycStatus(id, status)
-      setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+      const decidedAt = await updateKycStatus(id, status)
+      setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status, decidedAt } : r)))
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -93,10 +102,42 @@ export default function App() {
             saveError={saveError}
           />
         ) : (
-          <p className="placeholder">Select a row to see its details.</p>
+          <QueueSize records={records} />
         )}
       </main>
     </div>
+  )
+}
+
+function QueueSize({ records }: { records: KycRecord[] }) {
+  const buckets = hourlyQueueSize(records)
+  const peak = Math.max(...buckets.map((bucket) => bucket.average), 1)
+  return (
+    <section className="queue-size">
+      <h2>Average queue size by hour</h2>
+      <p className="placeholder">
+        Flagged cases waiting over the past 24 hours. Select a row to see its details.
+      </p>
+      <ol className="bars">
+        {buckets.map((bucket) => (
+          <Bar key={bucket.hour.toISOString()} bucket={bucket} peak={peak} />
+        ))}
+      </ol>
+    </section>
+  )
+}
+
+function Bar({ bucket, peak }: { bucket: HourlyQueueSize; peak: number }) {
+  return (
+    <li>
+      <span className="bar-value">{bucket.average.toFixed(1)}</span>
+      <span className="bar-track">
+        <span className="bar-fill" style={{ height: `${(bucket.average / peak) * 100}%` }} />
+      </span>
+      <time className="bar-label" dateTime={bucket.hour.toISOString()}>
+        {hourFormat.format(bucket.hour)}
+      </time>
+    </li>
   )
 }
 
@@ -123,6 +164,7 @@ function Detail({
     ['Status', record.status],
     ['Reason', record.reason],
   ]
+  if (record.decidedAt) fields.push(['Decided At', timestampFormat.format(record.decidedAt)])
   return (
     <>
       <header>
