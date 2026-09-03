@@ -13,6 +13,8 @@ uvicorn app:app --port 8000
 ```
 
 - `GET /api/flags` → `[{ key, label, description, enabled }]`
+- `GET /api/flags/stream` → server-sent events: the full flag list on connect and after every
+  toggle, so subscribers update without polling or a reload
 - `PUT /api/flags/{key}` with `{ "enabled": bool }`
 
 Unknown or missing keys in the file default to enabled, so the dashboard fails open.
@@ -27,5 +29,4 @@ npm install
 npm run dev
 ```
 
-The refunds dashboard reads the same `GET /api/flags` endpoint and hides any graph whose flag is
-off, so run the backend before `refunds-dashboard`.
+The refunds dashboard subscribes to the same stream and shows/hides graphs live as flags change.

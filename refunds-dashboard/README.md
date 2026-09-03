@@ -14,9 +14,11 @@ npm install
 npm run dev
 ```
 
-Each main graph renders only when its flag is enabled in `../feature-flags-admin`: the dev server
-proxies `/api/flags` to that backend (override with `FLAGS_API_URL`). If the backend is not
-running, every graph is shown.
+Each main graph renders only when its flag is enabled in `../feature-flags-admin`. The dashboard
+subscribes to that backend's `/api/flags/stream` server-sent events, so toggling a flag in the
+admin page shows or hides the graph immediately — no reload. The dev server proxies `/api/flags`
+to `http://127.0.0.1:8000` (override with `FLAGS_API_URL`); if the backend is not running, every
+graph is shown.
 
 To regenerate the sample workbook:
 

@@ -10,10 +10,15 @@ async function failure(response: Response, fallback: string): Promise<Error> {
   return new Error(body?.detail ?? `${fallback}: ${response.status}`)
 }
 
-export async function loadFlags(): Promise<Flag[]> {
-  const response = await fetch('/api/flags')
-  if (!response.ok) throw await failure(response, 'Failed to load flags')
-  return (await response.json()) as Flag[]
+/** Subscribes to the flag stream, so every open admin tab stays in sync. */
+export function subscribeToFlags(
+  onChange: (flags: Flag[]) => void,
+  onError: (message: string) => void,
+): () => void {
+  const source = new EventSource('/api/flags/stream')
+  source.onmessage = (event) => onChange(JSON.parse(event.data) as Flag[])
+  source.onerror = () => onError('Lost connection to the flag service, retrying…')
+  return () => source.close()
 }
 
 export async function setFlag(key: string, enabled: boolean): Promise<void> {

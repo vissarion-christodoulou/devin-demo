@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
-import { loadFlags, setFlag, type Flag } from './flags'
+import { setFlag, subscribeToFlags, type Flag } from './flags'
 
 export default function App() {
   const [flags, setFlags] = useState<Flag[]>([])
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState<string | null>(null)
 
-  useEffect(() => {
-    loadFlags().then(setFlags, (e: Error) => setError(e.message))
-  }, [])
+  useEffect(
+    () =>
+      subscribeToFlags((next) => {
+        setFlags(next)
+        setError(null)
+      }, setError),
+    [],
+  )
 
   const toggle = async (flag: Flag) => {
     const enabled = !flag.enabled

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BarChart, HorizontalBarChart, LineChart, PieChart } from './charts'
-import { ALL_ENABLED, loadFlags, type FlagState } from './featureFlags'
+import { ALL_ENABLED, subscribeToFlags, type FlagState } from './featureFlags'
 import {
   formatCompactCurrency,
   formatCurrency,
@@ -23,8 +23,9 @@ export default function App() {
 
   useEffect(() => {
     loadOrders().then(setOrders, (e: Error) => setError(e.message))
-    loadFlags().then(setFlags, () => setFlags(ALL_ENABLED))
   }, [])
+
+  useEffect(() => subscribeToFlags(setFlags), [])
 
   const regions = useMemo(() => [ALL, ...new Set(orders.map((o) => o.region))].sort(), [orders])
   const segments = useMemo(() => [ALL, ...new Set(orders.map((o) => o.segment))].sort(), [orders])
