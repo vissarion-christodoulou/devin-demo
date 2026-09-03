@@ -1,0 +1,8 @@
+{
+  "monthlyGrossVsRefunded": true,
+  "refundRateByChannel": true,
+  "refundRateByProduct": true,
+  "refundedValueByProduct": true,
+  "refundedValueByReason": true,
+  "refundedValueByRegion": true
+}

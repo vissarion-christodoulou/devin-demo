@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BarChart, HorizontalBarChart, LineChart, PieChart } from './charts'
+import { ALL_ENABLED, subscribeToFlags, type FlagState } from './featureFlags'
 import {
   formatCompactCurrency,
   formatCurrency,
@@ -18,10 +19,13 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [region, setRegion] = useState(ALL)
   const [segment, setSegment] = useState(ALL)
+  const [flags, setFlags] = useState<FlagState>(ALL_ENABLED)
 
   useEffect(() => {
     loadOrders().then(setOrders, (e: Error) => setError(e.message))
   }, [])
+
+  useEffect(() => subscribeToFlags(setFlags), [])
 
   const regions = useMemo(() => [ALL, ...new Set(orders.map((o) => o.region))].sort(), [orders])
   const segments = useMemo(() => [ALL, ...new Set(orders.map((o) => o.segment))].sort(), [orders])
@@ -79,25 +83,40 @@ export default function App() {
       </section>
 
       <section className="grid">
-        <Card title="Refunded value by reason" hint="Share of refunded dollars">
-          <PieChart slices={stats.byReason} format={formatCurrency} />
-        </Card>
-        <Card title="Refund rate by product" hint="Refunded value ÷ gross value">
-          <BarChart slices={stats.rateByProduct} format={formatPercent} />
-        </Card>
-        <Card title="Monthly gross vs refunded" hint="Order date, USD">
-          <LineChart series={stats.monthly} format={formatCurrency} formatAxis={formatCompactCurrency} />
-        </Card>
-        <Card title="Refunded value by region" hint="Across all products">
-          <HorizontalBarChart slices={stats.byRegion} format={formatCurrency} />
-        </Card>
-        <Card title="Refunded value by product" hint="Top SaaS lines">
-          <BarChart slices={stats.byProduct} format={formatCompactCurrency} color="#a855f7" />
-        </Card>
-        <Card title="Refund rate by channel" hint="Acquisition channel">
-          <HorizontalBarChart slices={stats.rateByChannel} format={formatPercent} color="#f59e0b" />
-        </Card>
+        {flags.refundedValueByReason && (
+          <Card title="Refunded value by reason" hint="Share of refunded dollars">
+            <PieChart slices={stats.byReason} format={formatCurrency} />
+          </Card>
+        )}
+        {flags.refundRateByProduct && (
+          <Card title="Refund rate by product" hint="Refunded value ÷ gross value">
+            <BarChart slices={stats.rateByProduct} format={formatPercent} />
+          </Card>
+        )}
+        {flags.monthlyGrossVsRefunded && (
+          <Card title="Monthly gross vs refunded" hint="Order date, USD">
+            <LineChart series={stats.monthly} format={formatCurrency} formatAxis={formatCompactCurrency} />
+          </Card>
+        )}
+        {flags.refundedValueByRegion && (
+          <Card title="Refunded value by region" hint="Across all products">
+            <HorizontalBarChart slices={stats.byRegion} format={formatCurrency} />
+          </Card>
+        )}
+        {flags.refundedValueByProduct && (
+          <Card title="Refunded value by product" hint="Top SaaS lines">
+            <BarChart slices={stats.byProduct} format={formatCompactCurrency} color="#a855f7" />
+          </Card>
+        )}
+        {flags.refundRateByChannel && (
+          <Card title="Refund rate by channel" hint="Acquisition channel">
+            <HorizontalBarChart slices={stats.rateByChannel} format={formatPercent} color="#f59e0b" />
+          </Card>
+        )}
       </section>
+      {Object.values(flags).every((enabled) => !enabled) && (
+        <p className="placeholder">All graphs are turned off in feature-flags-admin.</p>
+      )}
 
       <section className="card table-card">
         <h2>Product breakdown</h2>
