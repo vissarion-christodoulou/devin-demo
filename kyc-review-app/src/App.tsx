@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import {
   hourlyQueueSize,
   loadKycRecords,
+  QUEUE_HISTORY_HOURS,
   updateKycStatus,
   type HourlyQueueSize,
   type KycRecord,
@@ -17,12 +18,15 @@ const timestampFormat = new Intl.DateTimeFormat(undefined, {
 
 const hourFormat = new Intl.DateTimeFormat(undefined, { hour: 'numeric' })
 
+const LABEL_EVERY_HOURS = 6
+
 export default function App() {
   const [records, setRecords] = useState<KycRecord[]>([])
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<KycStatus>('FLAGGED')
+  const [showGraph, setShowGraph] = useState(false)
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState<string | null>(null)
 
@@ -53,7 +57,12 @@ export default function App() {
   return (
     <div className="layout">
       <aside className="list">
-        <h1>KYC Review Queue</h1>
+        <header className="list-header">
+          <h1>KYC Review Queue</h1>
+          <button className="graph-toggle" onClick={() => setShowGraph((shown) => !shown)}>
+            {showGraph ? 'Hide queue size' : 'See queue size'}
+          </button>
+        </header>
         <div className="controls">
           <input
             type="search"
@@ -78,7 +87,10 @@ export default function App() {
             <li key={record.id}>
               <button
                 className={record.id === selectedId ? 'row selected' : 'row'}
-                onClick={() => setSelectedId(record.id)}
+                onClick={() => {
+                  setSelectedId(record.id)
+                  setShowGraph(false)
+                }}
               >
                 <span className="title">
                   <span className="name">{record.customerName}</span>
@@ -93,7 +105,9 @@ export default function App() {
         </ul>
       </aside>
       <main className="detail">
-        {selected ? (
+        {showGraph ? (
+          <QueueSize records={records} />
+        ) : selected ? (
           <Detail
             record={selected}
             onClose={() => setSelectedId(null)}
@@ -102,7 +116,7 @@ export default function App() {
             saveError={saveError}
           />
         ) : (
-          <QueueSize records={records} />
+          <p className="placeholder">Select a row to see its details.</p>
         )}
       </main>
     </div>
@@ -111,31 +125,43 @@ export default function App() {
 
 function QueueSize({ records }: { records: KycRecord[] }) {
   const buckets = hourlyQueueSize(records)
-  const peak = Math.max(...buckets.map((bucket) => bucket.average), 1)
+  const peak = Math.max(...buckets.map((bucket) => bucket.size), 1)
   return (
     <section className="queue-size">
-      <h2>Average queue size by hour</h2>
+      <h2>Queue size by hour</h2>
       <p className="placeholder">
-        Flagged cases waiting over the past 24 hours. Select a row to see its details.
+        Cases still awaiting a decision, over the past {QUEUE_HISTORY_HOURS} hours.
       </p>
       <ol className="bars">
-        {buckets.map((bucket) => (
-          <Bar key={bucket.hour.toISOString()} bucket={bucket} peak={peak} />
+        {buckets.map((bucket, index) => (
+          <Bar
+            key={bucket.hour.toISOString()}
+            bucket={bucket}
+            peak={peak}
+            labelled={(buckets.length - 1 - index) % LABEL_EVERY_HOURS === 0}
+          />
         ))}
       </ol>
     </section>
   )
 }
 
-function Bar({ bucket, peak }: { bucket: HourlyQueueSize; peak: number }) {
+function Bar({
+  bucket,
+  peak,
+  labelled,
+}: {
+  bucket: HourlyQueueSize
+  peak: number
+  labelled: boolean
+}) {
   return (
-    <li>
-      <span className="bar-value">{bucket.average.toFixed(1)}</span>
+    <li title={`${timestampFormat.format(bucket.hour)}: ${bucket.size} flagged`}>
       <span className="bar-track">
-        <span className="bar-fill" style={{ height: `${(bucket.average / peak) * 100}%` }} />
+        <span className="bar-fill" style={{ height: `${(bucket.size / peak) * 100}%` }} />
       </span>
       <time className="bar-label" dateTime={bucket.hour.toISOString()}>
-        {hourFormat.format(bucket.hour)}
+        {labelled ? hourFormat.format(bucket.hour) : ''}
       </time>
     </li>
   )

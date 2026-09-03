@@ -22,11 +22,33 @@ body {
   background: #fff;
 }
 
+.list-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .list h1 {
   font-size: 1.1rem;
   margin: 0;
-  padding: 1rem;
-  border-bottom: 1px solid #e5e7eb;
+}
+
+.graph-toggle {
+  padding: 0.35rem 0.7rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.graph-toggle:hover {
+  background: #f3f4f6;
 }
 
 .controls {
@@ -217,7 +239,7 @@ body {
 .bars {
   display: flex;
   align-items: flex-end;
-  gap: 0.4rem;
+  gap: 0.2rem;
   height: 260px;
   margin: 0;
   padding: 1rem;
@@ -248,11 +270,6 @@ body {
   min-height: 2px;
   border-radius: 4px 4px 0 0;
   background: #4f46e5;
-}
-
-.bar-value {
-  font-size: 0.7rem;
-  color: #6b7280;
 }
 
 .bar-label {

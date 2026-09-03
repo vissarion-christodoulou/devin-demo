@@ -20,27 +20,25 @@ type SerializedRecord = Omit<KycRecord, 'enteredQueue' | 'decidedAt'> & {
 
 export interface HourlyQueueSize {
   hour: Date
-  average: number
+  size: number
 }
 
 const HOUR = 3_600_000
+export const QUEUE_HISTORY_HOURS = 48
 
 /**
- * Time-weighted average number of flagged cases in each of the last 24 hourly buckets: every
- * record contributes the fraction of the bucket it spent waiting, between entering the queue
- * and being decided (or now, if it is still flagged).
+ * Number of cases still awaiting a decision at the end of each of the last 48 hours: a record
+ * counts once it enters the queue and stops counting once it is decided.
  */
 export function hourlyQueueSize(records: KycRecord[], now = new Date()): HourlyQueueSize[] {
-  const latest = Math.floor(now.getTime() / HOUR) * HOUR
-  return Array.from({ length: 24 }, (_, index) => {
-    const start = latest - (23 - index) * HOUR
-    const end = Math.min(start + HOUR, now.getTime())
-    const waiting = records.reduce((sum, record) => {
-      const from = Math.max(record.enteredQueue.getTime(), start)
-      const to = Math.min(record.decidedAt?.getTime() ?? now.getTime(), end)
-      return sum + Math.max(0, to - from)
-    }, 0)
-    return { hour: new Date(start), average: end > start ? waiting / (end - start) : 0 }
+  const latest = Math.ceil(now.getTime() / HOUR) * HOUR
+  return Array.from({ length: QUEUE_HISTORY_HOURS }, (_, index) => {
+    const at = Math.min(latest - (QUEUE_HISTORY_HOURS - 1 - index) * HOUR, now.getTime())
+    const size = records.filter(
+      (record) =>
+        record.enteredQueue.getTime() <= at && (record.decidedAt?.getTime() ?? Infinity) > at,
+    ).length
+    return { hour: new Date(at), size }
   })
 }
 
