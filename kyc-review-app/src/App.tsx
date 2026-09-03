@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react'
-import { loadKycRecords, type KycRecord } from './kyc'
+import { loadKycRecords, updateKycStatus, type KycRecord, type KycStatus } from './kyc'
 
-const STATUSES = ['FLAGGED', 'APPROVED', 'REJECTED'] as const
-type Status = (typeof STATUSES)[number]
+const STATUSES: readonly KycStatus[] = ['FLAGGED', 'APPROVED', 'REJECTED']
 
 const timestampFormat = new Intl.DateTimeFormat(undefined, {
   dateStyle: 'medium',
@@ -14,13 +13,27 @@ export default function App() {
   const [error, setError] = useState<string | null>(null)
   const [selectedId, setSelectedId] = useState<number | null>(null)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<Status>('FLAGGED')
+  const [statusFilter, setStatusFilter] = useState<KycStatus>('FLAGGED')
+  const [saving, setSaving] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     loadKycRecords().then(setRecords, (e: Error) => setError(e.message))
   }, [])
 
   const selected = records.find((r) => r.id === selectedId) ?? null
+  const decide = async (id: number, status: KycStatus) => {
+    setSaving(true)
+    setSaveError(null)
+    try {
+      await updateKycStatus(id, status)
+      setRecords((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)))
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSaving(false)
+    }
+  }
   const query = search.trim().toLowerCase()
   const visible = records.filter(
     (r) =>
@@ -39,7 +52,7 @@ export default function App() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as Status)}>
+          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as KycStatus)}>
             {STATUSES.map((s) => (
               <option key={s} value={s}>
                 {s}
@@ -72,7 +85,13 @@ export default function App() {
       </aside>
       <main className="detail">
         {selected ? (
-          <Detail record={selected} onClose={() => setSelectedId(null)} />
+          <Detail
+            record={selected}
+            onClose={() => setSelectedId(null)}
+            onDecide={(status) => decide(selected.id, status)}
+            saving={saving}
+            saveError={saveError}
+          />
         ) : (
           <p className="placeholder">Select a row to see its details.</p>
         )}
@@ -81,7 +100,19 @@ export default function App() {
   )
 }
 
-function Detail({ record, onClose }: { record: KycRecord; onClose: () => void }) {
+function Detail({
+  record,
+  onClose,
+  onDecide,
+  saving,
+  saveError,
+}: {
+  record: KycRecord
+  onClose: () => void
+  onDecide: (status: KycStatus) => void
+  saving: boolean
+  saveError: string | null
+}) {
   const fields: [string, string | number][] = [
     ['ID', record.id],
     ['Customer Name', record.customerName],
@@ -114,6 +145,15 @@ function Detail({ record, onClose }: { record: KycRecord; onClose: () => void })
           </div>
         ))}
       </dl>
+      <footer className="actions">
+        <button className="accept" disabled={saving} onClick={() => onDecide('APPROVED')}>
+          Accept
+        </button>
+        <button className="reject" disabled={saving} onClick={() => onDecide('REJECTED')}>
+          Reject
+        </button>
+        {saveError && <span className="error">{saveError}</span>}
+      </footer>
     </>
   )
 }
