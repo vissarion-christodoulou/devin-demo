@@ -4,7 +4,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Plugin } from 'vite'
 import { read, utils, write } from 'xlsx'
 
-const WORKBOOK_PATH = fileURLToPath(new URL('../KYC_review.xlsx', import.meta.url))
+const WORKBOOK_PATH = fileURLToPath(new URL('./data/KYC_review.xlsx', import.meta.url))
 const STATUSES = new Set(['FLAGGED', 'APPROVED', 'REJECTED'])
 
 interface RawRow {
