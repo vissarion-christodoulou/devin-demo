@@ -11,6 +11,17 @@ function niceTicks(max: number, count = 4): number[] {
   return ticks
 }
 
+/** Greedily splits a label into lines that fit `maxChars`, so axis labels never overflow a band. */
+function wrapLabel(label: string, maxChars: number): string[] {
+  const lines: string[] = []
+  for (const word of label.split(' ')) {
+    const last = lines[lines.length - 1]
+    if (last && last.length + 1 + word.length <= maxChars) lines[lines.length - 1] = `${last} ${word}`
+    else lines.push(word)
+  }
+  return lines
+}
+
 function polar(cx: number, cy: number, radius: number, fraction: number): [number, number] {
   const angle = 2 * Math.PI * fraction - Math.PI / 2
   return [cx + radius * Math.cos(angle), cy + radius * Math.sin(angle)]
@@ -88,19 +99,24 @@ export function BarChart({
 }) {
   if (slices.length === 0) return <p className="empty">No data for the current filters.</p>
   const width = 520
-  const height = 260
-  const padding = { top: 16, right: 12, bottom: 52, left: 56 }
+  const plotHeight = 192
+  const padding = { top: 16, right: 12, left: 56 }
   const plotWidth = width - padding.left - padding.right
-  const plotHeight = height - padding.top - padding.bottom
   const ticks = niceTicks(Math.max(...slices.map((s) => s.value)))
   const max = ticks[ticks.length - 1]
   const band = plotWidth / slices.length
   const barWidth = Math.min(56, band * 0.62)
+  // ~6px per character at the 11px axis font size.
+  const labels = slices.map((slice) => wrapLabel(slice.label, Math.max(6, Math.floor(band / 6))))
+  const lineHeight = 12
+  const bottom = 12 + lineHeight * Math.max(...labels.map((lines) => lines.length))
+  const height = padding.top + plotHeight + bottom
+  const baseline = padding.top + plotHeight
 
   return (
     <svg className="chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label="Bar chart">
       {ticks.map((tick) => {
-        const y = padding.top + plotHeight - (tick / max) * plotHeight
+        const y = baseline - (tick / max) * plotHeight
         return (
           <g key={tick}>
             <line className="grid" x1={padding.left} x2={width - padding.right} y1={y} y2={y} />
@@ -113,7 +129,7 @@ export function BarChart({
       {slices.map((slice, index) => {
         const barHeight = (slice.value / max) * plotHeight
         const x = padding.left + band * index + (band - barWidth) / 2
-        const y = padding.top + plotHeight - barHeight
+        const y = baseline - barHeight
         return (
           <g key={slice.label}>
             <rect x={x} y={y} width={barWidth} height={barHeight} rx="4" fill={color}>
@@ -125,11 +141,18 @@ export function BarChart({
             <text
               className="axis"
               x={padding.left + band * index + band / 2}
-              y={height - padding.bottom + 18}
-              textAnchor="end"
-              transform={`rotate(-28 ${padding.left + band * index + band / 2} ${height - padding.bottom + 18})`}
+              y={baseline + 16}
+              textAnchor="middle"
             >
-              {slice.label}
+              {labels[index].map((line, lineIndex) => (
+                <tspan
+                  key={line}
+                  x={padding.left + band * index + band / 2}
+                  dy={lineIndex === 0 ? 0 : lineHeight}
+                >
+                  {line}
+                </tspan>
+              ))}
             </text>
           </g>
         )
@@ -138,8 +161,8 @@ export function BarChart({
         className="axis-line"
         x1={padding.left}
         x2={width - padding.right}
-        y1={padding.top + plotHeight}
-        y2={padding.top + plotHeight}
+        y1={baseline}
+        y2={baseline}
       />
     </svg>
   )
@@ -186,7 +209,8 @@ export function LineChart({
   if (series.length === 0) return <p className="empty">No data for the current filters.</p>
   const width = 520
   const height = 260
-  const padding = { top: 16, right: 12, bottom: 40, left: 56 }
+  // Right padding leaves room for the last month label, which is centred on the final point.
+  const padding = { top: 16, right: 28, bottom: 40, left: 56 }
   const plotWidth = width - padding.left - padding.right
   const plotHeight = height - padding.top - padding.bottom
   const ticks = niceTicks(Math.max(...series.flatMap((p) => [p.refunded, p.orders])))
