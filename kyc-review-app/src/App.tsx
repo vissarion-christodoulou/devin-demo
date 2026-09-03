@@ -144,15 +144,17 @@ function Detail({
           </div>
         ))}
       </dl>
-      <footer className="actions">
-        <button className="accept" disabled={saving} onClick={() => onDecide('APPROVED')}>
-          Accept
-        </button>
-        <button className="reject" disabled={saving} onClick={() => onDecide('REJECTED')}>
-          Reject
-        </button>
-        {saveError && <span className="error">{saveError}</span>}
-      </footer>
+      {record.status === 'FLAGGED' && (
+        <footer className="actions">
+          <button className="approve" disabled={saving} onClick={() => onDecide('APPROVED')}>
+            Approve
+          </button>
+          <button className="reject" disabled={saving} onClick={() => onDecide('REJECTED')}>
+            Reject
+          </button>
+          {saveError && <span className="error">{saveError}</span>}
+        </footer>
+      )}
     </>
   )
 }

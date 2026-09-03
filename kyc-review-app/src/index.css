@@ -190,11 +190,11 @@ body {
   cursor: default;
 }
 
-.actions .accept {
+.actions .approve {
   background: #16a34a;
 }
 
-.actions .accept:hover {
+.actions .approve:hover {
   background: #15803d;
 }
 
