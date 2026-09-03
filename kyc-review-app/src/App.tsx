@@ -122,7 +122,6 @@ function Detail({
     ['Sanctions from data source 2', record.sanctionsSource2],
     ['Status', record.status],
     ['Reason', record.reason],
-    ['Entered Queue', timestampFormat.format(record.enteredQueue)],
   ]
   return (
     <>
