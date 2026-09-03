@@ -7,6 +7,18 @@ import { read, utils, write } from 'xlsx'
 const WORKBOOK_PATH = fileURLToPath(new URL('../KYC_review.xlsx', import.meta.url))
 const STATUSES = new Set(['FLAGGED', 'APPROVED', 'REJECTED'])
 
+interface RawRow {
+  id: number
+  'Customer Name': string
+  'Name Read From Id': string
+  'Credit Score'?: number
+  'Sanctions from data source 1': string
+  'Sanctions from data source 2': string
+  Status: string
+  Reason: string
+  'Entered Queue': Date
+}
+
 function readBody(req: IncomingMessage): Promise<string> {
   return new Promise((resolve, reject) => {
     let data = ''
@@ -20,6 +32,22 @@ function json(res: ServerResponse, status: number, body: unknown) {
   res.statusCode = status
   res.setHeader('Content-Type', 'application/json')
   res.end(JSON.stringify(body))
+}
+
+function readRecords() {
+  const workbook = read(readFileSync(WORKBOOK_PATH), { cellDates: true })
+  const sheet = workbook.Sheets[workbook.SheetNames[0]]
+  return utils.sheet_to_json<RawRow>(sheet).map((row) => ({
+    id: row.id,
+    customerName: row['Customer Name'],
+    nameReadFromId: row['Name Read From Id'],
+    creditScore: row['Credit Score'] ?? null,
+    sanctionsSource1: row['Sanctions from data source 1'],
+    sanctionsSource2: row['Sanctions from data source 2'],
+    status: row.Status,
+    reason: row.Reason,
+    enteredQueue: row['Entered Queue'].toISOString(),
+  }))
 }
 
 function updateStatus(id: number, status: string): boolean {
@@ -49,6 +77,14 @@ export default function kycApiPlugin(): Plugin {
   return {
     name: 'kyc-api',
     configureServer(server) {
+      server.middlewares.use('/api/records', (req, res) => {
+        if (req.method !== 'GET') return json(res, 405, { error: 'Method not allowed' })
+        try {
+          json(res, 200, readRecords())
+        } catch (e) {
+          json(res, 500, { error: e instanceof Error ? e.message : String(e) })
+        }
+      })
       server.middlewares.use('/api/status', async (req, res) => {
         if (req.method !== 'POST') return json(res, 405, { error: 'Method not allowed' })
         try {
