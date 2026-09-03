@@ -14,6 +14,10 @@ npm install
 npm run dev
 ```
 
+Each main graph renders only when its flag is enabled in `../feature-flags-admin`: the dev server
+proxies `/api/flags` to that backend (override with `FLAGS_API_URL`). If the backend is not
+running, every graph is shown.
+
 To regenerate the sample workbook:
 
 ```sh
