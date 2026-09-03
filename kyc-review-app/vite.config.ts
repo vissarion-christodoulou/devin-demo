@@ -5,9 +5,4 @@ import kycApiPlugin from './kycApiPlugin.ts'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react(), kycApiPlugin()],
-  server: {
-    fs: {
-      allow: ['..'],
-    },
-  },
 })
