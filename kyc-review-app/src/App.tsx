@@ -122,7 +122,6 @@ function Detail({
     ['Sanctions from data source 2', record.sanctionsSource2],
     ['Status', record.status],
     ['Reason', record.reason],
-    ['Entered Queue', timestampFormat.format(record.enteredQueue)],
   ]
   return (
     <>
@@ -145,15 +144,17 @@ function Detail({
           </div>
         ))}
       </dl>
-      <footer className="actions">
-        <button className="accept" disabled={saving} onClick={() => onDecide('APPROVED')}>
-          Accept
-        </button>
-        <button className="reject" disabled={saving} onClick={() => onDecide('REJECTED')}>
-          Reject
-        </button>
-        {saveError && <span className="error">{saveError}</span>}
-      </footer>
+      {record.status === 'FLAGGED' && (
+        <footer className="actions">
+          <button className="approve" disabled={saving} onClick={() => onDecide('APPROVED')}>
+            Approve
+          </button>
+          <button className="reject" disabled={saving} onClick={() => onDecide('REJECTED')}>
+            Reject
+          </button>
+          {saveError && <span className="error">{saveError}</span>}
+        </footer>
+      )}
     </>
   )
 }
